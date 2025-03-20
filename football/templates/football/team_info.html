@@ -1,0 +1,78 @@
+{% extends "football/base.html" %}
+{% block content %}
+
+
+Nazwa: {{ team.name }} <br>
+Miasto : {{ team.city }} <br>
+Rok Powstania : {{team.founded}} <br>
+{% if team.stadium %}
+Stadion: {{ team.stadium}} <br>
+{% endif %}
+<div>
+    <a href="{% url 'team_matches' team.id %}" class="btn btn-secondary">Mecze</a>
+</div>
+<div class="bd-example m-6 border-0">
+    <table class="table">
+        <thead>
+            <tr class="text-white">
+                <th>
+                    <b>Skład:</b>
+                </th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+        <tr>
+            <th>
+                bramkarze:
+            </th>
+        </tr>
+
+        {% for gk in goalkeepers %}
+        <tr class="{% cycle 'bg-light' 'bg-white' %}">
+            <td>{{gk.name}}</td>
+            <td>{{gk.nationality}}</td>
+            <td>{{gk.birth_day|date:"Y.m.d"}}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <th>
+
+                obrońcy:
+            </th>
+        </tr>
+        {% for df in defenders %}
+        <tr class="{% cycle 'bg-light' 'bg-white' %}">
+            <td>{{df.name}}</td>
+            <td>{{df.nationality}}</td>
+            <td>{{df.birth_day|date:" Y.m.d"}}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <th>
+                pomocnicy:
+            </th>
+        </tr>
+        {% for mf in midfielders %}
+        <tr class="{% cycle 'bg-light' 'bg-white' %}">
+            <td>{{mf.name}}</td>
+            <td>{{mf.nationality}}</td>
+            <td>{{mf.birth_day|date:" Y.m.d"}}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <th>
+                napastnicy:</th>
+        </tr>
+        {% for st in strikers %}
+        <tr class="{% cycle 'bg-light' 'bg-white' %}">
+            <td>{{st.name}}</td>
+            <td>{{st.nationality}}</td>
+            <td>{{st.birth_day|date:" Y.m.d"}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+{% endblock %}

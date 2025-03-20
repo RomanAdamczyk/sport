@@ -1,0 +1,12 @@
+{% extends "football/base.html" %}
+{% block content %}
+
+<h1>{{event.event_type}} w meczu: {{ match }} z {{ event.minute }} minuty. Drużyna {{ team }} </h1>
+
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Zapisz</button>
+</form>
+
+{% endblock %}

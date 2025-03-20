@@ -1,0 +1,26 @@
+{% extends "football/base.html" %}
+{% block content %}
+
+<div class="bd-example m-6 border-0">
+    <table class="table">
+        <thead>
+            <tr class="text-white">
+                <th>
+                    Kolejki
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+
+            {% for lap in laps_list %}
+            <tr class="{% cycle 'bg-light' 'bg-white' %}">
+                <td>
+                    <a href="{% url 'lap' lap.lap %}" class="d-block text-decoration-none link-dark">
+                        Kolejka nr {{lap.lap}} </a>
+                </td>
+                {% endfor %}
+        </tbody>
+
+    </table>
+</div>
+{% endblock %}

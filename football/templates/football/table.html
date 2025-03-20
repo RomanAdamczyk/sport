@@ -1,0 +1,41 @@
+{% extends "football/base.html" %}
+{% block content %}
+
+
+Tabela
+<div class="bd-example m-6 border-0">
+    <table class="table">
+        <thead>
+            <tr class="bg-white">
+                <th>Lp.</th>
+                <th>Team</th>
+                <th>Points</th>
+                <th>Matches</th>
+                <th>Wins</th>
+                <th>Draws</th>
+                <th>Loses</th>
+                <th>Goals scored</th>
+                <th>Goals conceded</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team in teams_stat %}
+            <tr class="{% cycle 'bg-light' 'bg-white' %}">
+                <td>{{ forloop.counter }}</td>
+                <td><a href="{% url 'team_info' team.id %}" class="d-block text-decoration-none link-dark">{{team.name}}
+                    </a></td>
+                <td>{{team.points }}</td>
+                <td>{{team.matches}}</td>
+                <td>{{team.wins}}</td>
+                <td>{{team.draws}}</td>
+                <td>{{team.loses}}</td>
+                <td>{{team.goals_scored}}</td>
+                <td>{{team.goals_conceded}}</td>
+
+                {% endfor %}
+        </tbody>
+
+    </table>
+</div>
+
+{% endblock %}

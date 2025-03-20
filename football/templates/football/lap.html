@@ -1,0 +1,39 @@
+{% extends "football/base.html" %}
+{% block content %}
+
+Kolejka nr {{lap}}
+<div class="bd-example m-6 border-0">
+    <table class="table">
+        <thead>
+            <tr class="bg-white">
+                <th>data</th>
+                <th>drużyny</th>
+                <th>wynik</th>
+                <td></td>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in matches %}
+            <tr class="{% cycle 'bg-light' 'bg-white' %}">
+                <td>{{ match.date|date:"Y.m.d" }}</td>
+
+                <td> <a href="{% url 'team_info' match.home_team.id %}"
+                        class="text-decoration-none link-dark">{{match.home_team}}</a> - <a
+                        href="{% url 'team_info' match.away_team.id %}"
+                        class="text-decoration-none link-dark">{{match.away_team}}</a>
+                </td>
+                <td> {{match.home_score}} : {{match.away_score}}</td>
+                <td>
+                    <a href="{% url 'match_details' match.pk %}"> <span class="badge bg-dark">[szczegóły]</span> </a>
+                    {% if "Moderatorzy" in request.user.groups.all|join:", " %}
+                    <a href="{% url 'match_delete' match.pk %}"><span class="badge bg-danger">[usuń] </span> </a>
+                    <a href="{% url 'match_update' match.pk %}"> <span class="badge bg-secondary">[popraw]</span> </a>
+                    {% endif %}
+                </td>
+                {% endfor %}
+                </ul>
+                {% endblock %}
+            </tr>
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,63 @@
+{% extends "football/base.html" %}
+{% block content %}
+<div class="row">
+    <div class="md-3 col-4 text-end">
+        {{current_match.home_team}}
+    </div>
+    <div class="md-3 col-2 text-end">
+        {{current_match.home_score}}
+    </div>
+    <div class="md-3 col-2">
+        {{current_match.away_score}}
+    </div>
+    <div class="md-3 col-4">
+        {{current_match.away_team}}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-6 ">
+        {% for player in home%}
+        <div class="row">
+            <div class="col-8 {% cycle 'bg-light text-dark' 'bg-white text-dark' %} p-2">
+                {{ player.0 }}
+            </div>
+            <div class="col-4 {% cycle 'bg-light text-dark' 'bg-white text-dark' %} p-2">
+                {% for event in player.1 %}
+                {{event.minute}} 
+                {% if event.event_type == "yellow_card" %}
+                <i class=" text-warning bi bi-square-fill"></i>
+                {% elif event.event_type == "red_card" %}
+                <i class=" text-danger bi bi-square-fill"></i>
+                {% elif event.event_type == "goal" %}
+                <i class="fa-solid fa-futbol"></i>                
+                {% elif event.event_type == "own_goal" %}
+                <i class=" text-danger fa-solid fa-futbol"></i>                
+                {% elif event.event_type == "substitution" %}
+                <i class=" text-danger bi bi-arrow-down"></i>             
+
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="col-6">
+        {% for player in away_team %}
+        <div class="row">
+            <div class="col-10 {% cycle 'bg-light text-dark' 'bg-white text-dark' %} p-2">
+                {{ player.player.name }}
+            </div>
+            <div class="col-2 {% cycle 'bg-light text-dark' 'bg-white text-dark' %} p-2">
+                {{ away_events.player }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% if "Moderatorzy" in request.user.groups.all|join:", " %}
+<div  class="d-grid gap-2 col-6 mx-auto">
+    <a href="{% url 'match_update' match.pk %}" button class="btn btn-dark" type="button"> popraw </a></div>
+{% endif %}
+
+{% endblock %}

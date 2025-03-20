@@ -1,0 +1,60 @@
+{% extends "football/base.html" %}
+{% block content %}
+
+<form method="post">{% csrf_token %}
+    <div class="row">
+        <div class="mb-3 col-lg-2 col-md-6 col-6">
+            <label for="{{ form.lap.id_for_label }}" class="form-label">Kolejka</label>
+            {{ form.lap }}
+        </div>
+        <div class="col-lg-8 col-md-2 col-12"></div>
+        <div class="mb-3 col-lg-2 col-md-4 col-6">
+            <label for="{{ form.date.id_for_label }}" class="form-label">Data</label>
+            {{ form.date }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="mb-3 col-lg-4 col-md-6 col-12">
+            <label for="{{ form.home_team.id_for_label }}" class="form-label">Gospodarze</label>
+            {{ form.home_team }}
+        </div>
+        <div class="mb-3 col-lg-2 col-md-4 col-6">
+            <label for="{{ form.home_score.id_for_label }}" class="form-label">Bramki</label>
+            {{ form.home_score }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="mb-3 col-lg-4 col-md-6 col-12">
+            <label for="{{ form.away_team.id_for_label }}" class="form-label">Goście</label>
+            {{ form.away_team }}
+        </div>
+        <div class="mb-3 col-lg-2 col-md-4 col-6">
+            <label for="{{ form.away_score.id_for_label }}" class="form-label">Bramki</label>
+            {{ form.away_score }}
+        </div>
+    </div>
+    <div class="row">
+        <div class="mb-3 col-lg-4 col-md-6 col-12 d-grid">
+            {% if home %}
+            <a href="{% url 'lineup' match.pk 'home' %}" class="btn btn-secondary">skład gospodarzy</a>
+            {% else %}
+            <a href="{% url 'lineup_create' match.pk 'home' %}" class="btn btn-secondary">skład gospodarzy</a>
+            {% endif %}
+        </div>
+        <div class="mb-3 col-lg-4 col-md-6 col-12 d-grid">
+            {% if away %}
+            <a href="{% url 'lineup' match.pk 'away' %}" class="btn btn-secondary">skład gości</a>
+            {% else %}
+            <a href="{% url 'lineup_create' match.pk 'away' %}" class="btn btn-secondary">skład gości</a>
+            {% endif %}
+        </div>
+        <div class="mb-3 col-lg-4 col-md-6 col-12 d-grid">
+            <a href="{% url 'event' match.pk %}" button type="button" class="btn btn-secondary">wydarzenia</a>
+        </div>
+    </div>
+    <input type="submit" value="Popraw">
+</form>
+
+<br>
+
+{% endblock %}

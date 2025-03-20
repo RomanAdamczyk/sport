@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+    <header class="p-3 text-bg-dark">
+        <div class="container">
+            <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+
+                <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+                    <li><a href="{% url 'index' %}" class="nav-link px-2 text-white">Drużyny</a></li>
+                    {% if "Moderatorzy" in request.user.groups.all|join:", " %}
+                    <li><a href="{% url 'match_create' %}" class="nav-link px-2 text-white">Wpisz wynik meczu</a></li>
+                    {% endif %}
+                    <li><a href="{% url 'table' %}" class="nav-link px-2 text-white">Tabele</a></li>
+                    <li><a href="{% url 'laps_list' %}" class="nav-link px-2 text-white">Kolejki</a></li>
+                </ul>
+                <div class="text-end">
+
+                    {% if user.is_authenticated %}
+                    <form action="{% url 'logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-light me-2">Wyloguj</button>
+                    </form>
+                    Witaj, {{ user.username }}!
+                    {% else %}
+                    <form action="{% url 'login' %}?next={{ request.path }}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-light me-2">Zaloguj</button>
+                    </form>
+                    <form action="{% url 'register' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning">Zarejestruj</button>
+                    </form>{% endif %}
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+</body>
+<style>
+    .bg-yellow {
+        background-color: #fff279;
+        /* Jasny żółty */
+    }
+
+    .bg-green {
+        background-color: #39723b;
+        /* Jasny zielony */
+    }
+</style>
+<main>
+
+    <body class="bg-green text-light">
+        <div class="row justify-content-center">
+            <div class="col-md-7">
+                {% block content %}
+                {% endblock %}
+            </div>
+        </div>
+    </body>
+</main>

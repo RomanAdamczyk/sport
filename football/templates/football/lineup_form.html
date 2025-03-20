@@ -1,0 +1,66 @@
+{% extends "football/base.html" %}
+{% block content %}
+
+<form method="post" class="form-group">
+    {% csrf_token %}
+
+    <div class="row">
+        <div class="col-3">
+            <fieldset>
+                <legend>Bramkarze</legend>
+                {% for player in goalkeepers %}
+                <div>
+                    <input type="checkbox" name="players" value="{{ player.id }}" id="id_{{ player.id }}"
+                    {% if player.id in selected_players %}checked{% endif %}>
+                    <label for="id_{{ player.id }}">{{ player.name }}</label>
+                </div>
+                {% endfor %}
+            </fieldset>
+        </div>
+        <div class="col-3">
+            <fieldset>
+                <legend>Obrońcy</legend>
+                {% for player in defenders %}
+                <div>
+                    <input type="checkbox" name="players" value="{{ player.id }}" id="id_{{ player.id }}" {% if player.id in selected_players %}checked{% endif %}>
+                    <label for="id_{{ player.id }}">{{ player.name }}</label>
+                </div>
+                {% endfor %}
+            </fieldset>
+        </div>
+        <div class="col-3">
+            <fieldset>
+                <legend>Pomocnicy</legend>
+                {% for player in midfielders %}
+                <div>
+                    <input type="checkbox" name="players" value="{{ player.id }}" id="id_{{ player.id }}" {% if player.id in selected_players %}checked{% endif %}>
+                    <label for="id_{{ player.id }}">{{ player.name }}</label>
+                </div>
+                {% endfor %}
+            </fieldset>
+        </div>
+        <div class="col-3">
+            <fieldset>
+                <legend>Napastnicy</legend>
+                {% for player in strikers %}
+                <div>
+                    <input type="checkbox" name="players" value="{{ player.id }}" id="id_{{ player.id }}" {% if player.id in selected_players %}checked{% endif %}>
+                    <label for="id_{{ player.id }}">{{ player.name }}</label>
+                </div>
+                {% endfor %}
+            </fieldset>
+        </div>
+    </div>
+    <div class="form-group">
+        {% if form.players.errors %}
+        <div class="text-danger">
+            {% for error in form.players.errors %}
+            <small>{{ error }}</small>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    <input type="submit" value="Zatwierdź skład" class="btn btn-primary">
+</form>
+
+{% endblock %}
