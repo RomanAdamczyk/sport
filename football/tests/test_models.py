@@ -1,3 +1,4 @@
+from django.forms import ValidationError
 import pytest
 from football.models import Team
 from django.db import IntegrityError
@@ -27,14 +28,16 @@ class TestTeam():
         assert str(team) == 'Test Team'
 
     def test_team_without_name(self):
-        # with pytest.raises(IntegrityError):
-        team =Team.objects.create(city='Test City', founded='2020-01-01')
-        assert team.city == 'Test City'
+        team = Team(city='Test City', founded='2020-01-01')
+        with pytest.raises(ValidationError):
+            team.full_clean()
+            team.save()
 
     def test_team_without_city(self):
-        # with pytest.raises(IntegrityError):
-        team = Team.objects.create(name='Test Team', founded='2020-01-01')
-        assert team.name == "Test Team"
+        team = Team(name='Test Team', founded='2020-01-01')
+        with pytest.raises(ValidationError):
+            team.full_clean()
+            team.save()
       
 
     def test_team_without_founded(self):

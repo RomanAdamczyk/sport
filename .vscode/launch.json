@@ -1,10 +1,6 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
         {
             "name": "Python Debugger: Django",
             "type": "debugpy",
@@ -14,7 +10,11 @@
             ],
             "django": true,
             "autoStartBrowser": false,
-            "program": "${workspaceFolder}\\manage.py"
+            "program": "${workspaceFolder}/manage.py",
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "sport.settings",
+                "PYTHONPATH": "${workspaceFolder}"
+            }
         }
     ]
 }
