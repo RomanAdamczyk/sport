@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 class Team(models.Model):
     name = models.CharField(max_length=64, null=False, blank=False)
@@ -20,6 +21,17 @@ class Match(models.Model):
     def __str__(self) -> str:
         return self.home_team.name + " vs " + self.away_team.name
     
+    def clean(self):
+        if self.home_score < 0:
+            raise ValidationError({'home_score': 'Wynik nie może być ujemny.'})
+        if self.away_score < 0:
+            raise ValidationError({'away_score': 'Wynik nie może być ujemny.'})
+        if self.lap <=0:
+            raise ValidationError({'lap': 'kolejka nie moze być ujemna'})
+        if self.home_team == self.away_team:
+            raise ValidationError({'away_team': 'drużyna gości nie może być taka sama jak drućyna gospodarzy'})
+
+
 class Player(models.Model):
     POSITION=(
         ('gk', 'bramkarz'),
