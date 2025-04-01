@@ -84,4 +84,4 @@ class Substitution(models.Model):
     player_in = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="substitutions_in",help_text="Zawodnik wchodzący na boisko")
 
     def __str__(self):
-        return f"{self.player_in.name} za {self.event.player.name} z {self.event.match} {self.event.minute} mech: {self.event.match}"
+        return f"{self.player_in.name} za {self.event.player.name} z {self.event.team} {self.event.minute} mecz: {self.event.match}"
