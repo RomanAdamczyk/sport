@@ -67,7 +67,7 @@ class MatchCreateView(PermissionRequiredMixin, CreateView):
     def form_valid(self, form):
         match = form.save()  # Mecz zostaje zapisany i otrzymuje pk
         # Przekieruj do widoku szczegółowego lub update view, gdzie opcjonalnie można ustawić skład
-        return redirect(reverse('match_detail', kwargs={'pk': match.pk}))
+        return redirect(reverse('match_details', kwargs={'pk': match.pk}))
 
 class MatchDeleteView(PermissionRequiredMixin, DeleteView):
     model = Match
