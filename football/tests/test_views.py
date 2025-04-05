@@ -5,7 +5,7 @@ from datetime import date
 from model_bakery import baker
 from django.urls.exceptions import NoReverseMatch
 # from django.core.exceptions import PermissionDenied
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Permission, User, Group
 from django.core.exceptions import ValidationError
 
 
@@ -403,5 +403,97 @@ class TestMatchCreateView():
         assert b'name="away_team"' in response.content
         assert b'name="lap"' in response.content
         assert b'type="submit"' in response.content
- 
+
+@pytest.mark.django_db
+class TestRegisterView():
+    def test_register_view_renders_form(self,client):
+        """Sprawdzam poprawność przesłanego formularza"""
+
+        url = reverse('register')
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert b'<form' in response.content  # Sprawdza czy formularz jest w HTML
+        assert b'name="username"' in response.content  # Sprawdza czy pole dla username jest obecne
+        assert b'name="password1"' in response.content  # I dla hasła
+        assert b'name="password2"' in response.content  # I dla drugiego hasła (potwierdzenie)
+
+    def test_register_view_creates_user_and_adds_to_group(self,client):
+        """Sprawdzam poprawność rejestracji i dodawania do grupy"""
+        url = reverse('register')
+        data = {
+            'username': 'testuser',
+            'password1': 'TestPassword123',
+            'password2': 'TestPassword123',
+        }
+
+        user_count = User.objects.count()
+
+        response = client.post(url, data=data)
+
+        # Sprawdzanie, czy użytkownik został zapisany
+        user = User.objects.get(username='testuser')
+        assert user is not None
+
+        assert user_count + 1 == User.objects.count()
+
+        # Sprawdzanie, czy użytkownik jest dodany do grupy
+        default_group = Group.objects.get(name='Uzytkownicy')
+        assert default_group in user.groups.all()
+
+        # Sprawdzanie przekierowania na stronę 'index'
+        assert response.status_code == 302  # Sprawdzenie, czy przekierowuje
+        assert response.url == reverse('index')  # Sprawdzenie, czy przekierowanie jest na stronę główną
+
+    def test_register_view_invalid_password2(self,client):
+        """Sprawdzam poprawność rejestracji przy błędnym drugim haśle"""
+        
+        url = reverse('register')
+        user_data = {
+            'username': 'testuser',
+            'password1': 'TestPassword123',
+            'password2': 'WrongPassword123',
+        }
+
+        user_count = User.objects.count()
+        response = client.post(url, data=user_data)
+        assert response.status_code == 200  # Formularz nadal jest renderowany
+        assert user_count == User.objects.count()
+        
+        
+        # print(response.content)
+        # response_content = response.content.decode('utf-8')
+        # print(response_content)
+        # Sprawdzenie, czy formularz nie jest poprawny
+        # response_content = response.content.decode('utf-8')  # Dekodujemy zawartość na stringa w UTF-8
+        # assert b'Hasła muszą być identyczne' in str(response.context['form'].errors)  # Sprawdzamy błąd dotyczący hasła
+
+    def test_register_view_logs_in_user(self, client):
+        """Sprawdzam czy użytkownik jest zalogowany po rejestracji"""
+        url = reverse('register')
+        user_data = {
+            'username': 'testuser',
+            'password1': 'TestPassword123',
+            'password2': 'TestPassword123',
+        }
+
+        response = client.post(url, data=user_data)
+
+        # Sprawdzanie, czy użytkownik jest zalogowany
+        user = User.objects.get(username='testuser')
+        assert user.is_authenticated  # Sprawdzenie, czy użytkownik jest zalogowany
+
+    def test_register_view_short_password(self, client):
+        """Sprawdzam czy użytkownik jest zalogowany po rejestracji"""
+        url = reverse('register')
+        user_data = {
+            'username': 'testuser',
+            'password1': '1',
+            'password2': '1',
+        }
+        user_count = User.objects.count()
+        response = client.post(url, data=user_data)
+        
+        assert response.status_code == 200  # Formularz nadal jest renderowany
+        assert user_count == User.objects.count()
 
