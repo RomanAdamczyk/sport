@@ -15,7 +15,7 @@ class MatchAdmin(admin.ModelAdmin):
         (None, {"fields": [("home_team", "away_team", "home_score", "away_score")]}),
         (None, {"fields": ["date", "lap"]})      
     ]
-    list_display = ["home_team", "away_team", "home_score", "away_score", "lap", "date"]
+    list_display = ["id", "home_team", "away_team", "home_score", "away_score", "lap", "date"]
     list_filter = ['lap', 'home_team', 'away_team']
 
 class PlayerAdmin(admin.ModelAdmin):

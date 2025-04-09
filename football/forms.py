@@ -34,10 +34,13 @@ class LineupForm(forms.ModelForm):
     queryset=Player.objects.all(),  # Lista dostępnych zawodników
     widget=forms.CheckboxSelectMultiple,
     )
-    
+
+
+
     def __init__(self, *args, **kwargs):
         team = kwargs.pop('team', None)  # Pobieramy drużynę z argumentów
         super().__init__(*args, **kwargs)  # Inicjalizujemy formularz
+
         if team:
             self.fields['players'].queryset = Player.objects.filter(team=team)
 
@@ -45,6 +48,11 @@ class LineupForm(forms.ModelForm):
 
     def clean_players(self):
         players = self.cleaned_data.get('players')
+        # if not players:
+        #     print("!!!!!!BRAK PLAYERS !!!!!!!!!!!!!")
+        # else:
+        #     print("!!!!!!!!!!!!!! są Players !!!!!!!!!!!")
+
         if len(players) != 11:
             raise forms.ValidationError("Wybierz dokładnie 11 zawodników!")
         return players

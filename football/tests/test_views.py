@@ -1,8 +1,9 @@
 import pytest
 from django.urls import reverse
-from football.models import Team, Match
+from football.models import Team, Match, Player, Lineup
 from datetime import date
 from model_bakery import baker
+from faker import Faker
 from django.urls.exceptions import NoReverseMatch
 # from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import Permission, User, Group
@@ -26,7 +27,16 @@ def moderator_user(db, client):
     permission_add_match = Permission.objects.get(codename="add_match")
     permission_change_match = Permission.objects.get(codename="change_match")
     permission_delete_match = Permission.objects.get(codename="delete_match")
-    group.permissions.add(permission_view_match, permission_add_match, permission_change_match, permission_delete_match)
+    permission_view_lineup = Permission.objects.get(codename="view_lineup")
+    permission_add_lineup = Permission.objects.get(codename="add_lineup")
+    permission_change_lineup = Permission.objects.get(codename="change_lineup")
+    permission_delete_lineup = Permission.objects.get(codename="delete_lineup")
+    permission_view_team = Permission.objects.get(codename="view_team")
+    permission_view_player = Permission.objects.get(codename="view_player")
+    group.permissions.add(permission_view_match, permission_add_match, permission_change_match, permission_delete_match,
+                          permission_view_lineup, permission_add_lineup, permission_change_lineup, permission_delete_lineup,
+                          permission_view_team,
+                          permission_view_player)
 
     user.groups.add(group)
 
@@ -36,6 +46,10 @@ def moderator_user(db, client):
 @pytest.fixture
 def team(db):
     return baker.make("football.Team", _quantity=2)
+
+@pytest.fixture
+def single_team(db):
+    return baker.make("football.Team")
 
 @pytest.fixture
 def game(team):
@@ -58,6 +72,18 @@ def game_data(team):
         'home_score': 3,
         'away_score': 0
     }
+
+@pytest.fixture
+def lineup(game, team_type):
+    """Tworzy lineup dla drużyny na podstawie team_type"""
+    team = game.home_team if team_type == 'home_team' else game.away_team
+    players = [baker.make('football.Player', team=team) for _ in range(11)]
+    lineups = []
+    for player in players:
+        lineup = baker.make('football.Lineup', match=game, team=team, player=player, is_starting=True, on_bench=False)
+        lineups.append(lineup)
+    
+    return lineups
 
 @pytest.mark.django_db
 class TestIndexView():
@@ -452,3 +478,371 @@ class TestRegisterView():
         assert response.status_code == 200  # Formularz nadal jest renderowany
         assert user_count == User.objects.count()
 
+@pytest.mark.django_db
+class TestDeleteMatchView():
+    
+    def test_delete_view_without_authorization(self,client, game):
+        """ sprawdzam, czy przekierowuje użytkownika bez autoryzacji"""
+        games_count = Match.objects.count()
+        url = reverse('match_delete', kwargs={'pk': game.pk})
+        response = client.get(url)
+        assert response.status_code == 302
+        assert games_count == Match.objects.count()
+
+    def test_delete_view_without_permission(self, login_user, game):
+        """ sprawdzam, czy odmawia dostępu zalogowanego użytkownika bez uprawnień"""
+        games_count = Match.objects.count()
+        url = reverse('match_delete', kwargs={'pk': game.pk})
+        response = login_user.get(url)
+        assert response.status_code == 403
+        assert games_count == Match.objects.count()
+
+    def test_delete_view_deletes_object(self, moderator_user, game):
+        """sprawdzam, czy poprawnie usuwa mecz"""
+        games_count = Match.objects.count()
+        client, _ = moderator_user
+        url = reverse('match_delete', kwargs={'pk': game.pk})
+        response = client.post(url)
+
+        assert games_count -1 == Match.objects.count()
+        assert response.status_code == 302
+        assert response.url == reverse('index')
+        assert not Match.objects.filter(pk=game.pk).exists()
+
+    def test_delete_view_renders_confirmation_template(self, moderator_user, game):
+        """sprawdzam, czy poprawnie renderuje szablon z poprawnym kontekstem"""
+        client, _ = moderator_user
+        url = reverse('match_delete', kwargs={'pk': game.pk})
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert "football/match_delete.html" in [t.name for t in response.templates]
+        assert response.context["object"] == game
+
+
+@pytest.mark.django_db
+class TestUpdateMatchView():
+    
+    def test_update_view_without_authorization(self,client, game):
+        """ sprawdzam, czy przekierowuje użytkownika bez autoryzacji"""
+        url = reverse('match_update', kwargs={'pk': game.pk})
+        response = client.get(url)
+        assert response.status_code == 302
+
+    def test_update_view_without_permission(self, login_user, game):
+        """ sprawdzam, czy odmawia dostępu zalogowanego użytkownika bez uprawnień"""
+        url = reverse('match_update', kwargs={'pk': game.pk})
+        response = login_user.get(url)
+        assert response.status_code == 403
+
+    def test_update_view_update_object(self, moderator_user, game):
+        """sprawdzam, czy poprawnie uaktualnia dane meczu"""
+        before_lap = Match.objects.get(pk=game.pk).lap
+        games_count = Match.objects.count()
+        client, user = moderator_user
+        url = reverse('match_update', kwargs={'pk': game.pk})
+        response = client.post(url, data={
+            'lap': 2,
+            'date': game.date,
+            'home_team': game.home_team.pk,
+            'away_team': game.away_team.pk,
+            'home_score': game.home_score,
+            'away_score': game.away_score,
+            })
+    
+        assert Match.objects.get(pk=game.pk).lap ==2
+        assert Match.objects.get(pk=game.pk).lap!= before_lap
+        assert games_count == Match.objects.count()
+        assert response.status_code == 302
+        assert response.url == reverse('index')
+        assert Match.objects.filter(pk=game.pk).exists()
+
+    def test_update_view_renders_confirmation_template(self, moderator_user, game):
+        """sprawdzam, czy poprawnie renderuje szablon z poprawnym kontekstem"""
+        client, user = moderator_user
+        url = reverse('match_update', kwargs={'pk': game.pk})
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert "football/match_update.html" in [t.name for t in response.templates]
+        assert response.context["object"] == game
+
+@pytest.mark.django_db
+class TestTeamInfoView():
+    def test_team_info_view_without_authorization(self,client, single_team):
+        """ sprawdzam, czy przekierowuje użytkownika bez autoryzacji"""
+        url = reverse('team_info', kwargs={'pk': single_team.pk})
+        response = client.get(url)
+        assert response.status_code == 302
+
+    def test_team_info_view_renders_confirmation_template(self, login_user, single_team):
+        """sprawdzam, czy poprawnie renderuje szablon z poprawnym kontekstem"""
+        url = reverse('team_info', kwargs={'pk': single_team.pk})
+        response = login_user.get(url)
+
+        assert response.status_code == 200
+        assert "football/team_info.html" in [t.name for t in response.templates]
+        assert response.context["object"] == single_team
+
+    def test_team_info_all_positions_in_context(self, login_user, single_team):
+        """sprawdzam, czy gracz z każdą pozycją jest w konteście"""
+        positions = ['gk', 'df', 'mf', 'st']
+        
+        for position in positions:
+            baker.make('football.Player', team=single_team, position=position)
+
+        url = reverse('team_info', kwargs={'pk': single_team.pk})
+        response = login_user.get(url)
+
+        for position in positions:
+            player = Player.objects.get(team=single_team, position=position)
+            if position == 'gk':
+                assert player in response.context['goalkeepers']
+            elif position == 'df':
+                assert player in response.context['defenders']
+            elif position == 'mf':
+                assert player in response.context['midfielders']
+            elif position == 'st':
+                assert player in response.context['strikers']
+
+    def test_team_info_player_from_another_team(self, login_user, team):
+        """sprawdzam, czy gracz z innej drużyny nei pojawi się w kontekscie"""
+       
+        player = baker.make('football.Player', team=team[0])
+        url = reverse('team_info', kwargs={'pk': team[1].pk})
+        response = login_user.get(url)
+
+        assert player.position in ['gk', 'df', 'mf', 'st']  #czy na pewno dobrze stworzona pozycja
+        assert player not in response.context['goalkeepers']
+        assert player not in response.context['defenders']
+        assert player not in response.context['midfielders']
+        assert player not in response.context['strikers']
+
+    def test_team_info_without_players(self, login_user, single_team):
+        """sprawdzam, czy bez wproadzania piłkarzy pojawią się jacyś gracze"""
+
+        url = reverse('team_info', kwargs={'pk': single_team.pk})
+        response = login_user.get(url)
+     
+        assert response.context['goalkeepers'].count() == 0
+        assert response.context['defenders'].count() == 0
+        assert response.context['midfielders'].count() == 0
+        assert response.context['strikers'].count() == 0
+
+    def test_team_info_wrong_team(self, login_user):
+        """sprawdzam, czy bez wproadzania piłkarzy pojawią się jacyś gracze"""
+
+        url = reverse('team_info', kwargs={'pk': 9999})
+        response = login_user.get(url)
+
+        assert response.status_code == 404
+    
+@pytest.mark.django_db
+class TestLinupCreateView:
+    
+    @pytest.mark.parametrize("team_type", ["home_team", "away_team"])
+    def test_lineup_create_view_without_authorization(self,client, game, team_type):
+        """ sprawdzam, czy przekierowuje użytkownika bez autoryzacji"""
+        url = reverse('lineup_create', kwargs={'pk': game.pk, 'team_type':team_type})
+        response = client.get(url)
+        assert response.status_code == 302
+
+    @pytest.mark.parametrize("team_type", ["home_team", "away_team"])
+    def test_lineup_create_without_permission(self, login_user, game, team_type):
+        """ sprawdzam, czy odmawia dostępu zalogowanego użytkownika bez uprawnień"""
+        url = reverse('lineup_create', kwargs={'pk': game.pk, 'team_type':team_type})
+        response = login_user.get(url)
+        assert response.status_code == 403
+
+    @pytest.mark.parametrize("team_type", ["home", "away"])
+    def test_lineup_create(self, moderator_user, game, team_type):
+        """sprawdzam czy poprawnie tworzy lineup oraz czy poprawnie renderuje formularz"""
+
+        positions = ['gk', 'df', 'mf', 'st']
+        
+        if team_type == "home":
+            first_team = game.home_team
+            second_team = game.away_team
+        else:
+            first_team = game.away_team
+            second_team = game.home_team
+
+        for position in positions:
+            baker.make('football.Player', team=first_team, position=position, name=f"zawodnik first team {position}")
+        for position in positions:
+            baker.make('football.Player', team=second_team, position=position, name=f"zawodnik second team {position}")
+
+        client , _ = moderator_user
+        url = reverse('lineup_create', kwargs={'pk': game.pk, 'team_type':team_type})
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert "football/lineup_form.html" in [t.name for t in response.templates]
+        assert 'goalkeepers' in response.context
+        assert 'defenders' in response.context
+        assert 'midfielders' in response.context
+        assert 'strikers' in response.context
+        assert len(response.context['goalkeepers']) == 1
+        assert len(response.context['defenders']) == 1
+        assert len(response.context['midfielders']) == 1
+        assert len(response.context['strikers']) == 1
+        assert "first team gk" in str(response.context['goalkeepers'])
+        assert "first team df" in str(response.context['defenders'])
+        assert "first team mf" in str(response.context['midfielders'])
+        assert "first team st" in str(response.context['strikers'])
+        assert "second team gk" not in str(response.context['goalkeepers'])
+        assert "second team df" not in str(response.context['defenders'])
+        assert "second team mf" not in str(response.context['midfielders'])
+        assert "second team st" not in str(response.context['strikers'])
+
+    @pytest.mark.parametrize("team_type", ["home", "away"])
+    def test_lineup_create(self, moderator_user, game, team_type):
+        """sprawdzam poprawnośc przesłanego formularza przy POST"""
+
+        client, _ = moderator_user
+        team = game.home_team if team_type == 'home' else game.away_team
+        players = [baker.make('football.Player', team = team) for _ in range(11)]
+        lineups_count = Lineup.objects.filter(match=game, team=team).count()
+        lineup_data = {'match':game.id, 'team': team.id, 'players':[player.id for player in players]}
+        
+        url = reverse('lineup_create', kwargs={'pk': game.pk, 'team_type':team_type})
+        response = client.post(url, data=lineup_data)
+        player_ids_in_lineups = Lineup.objects.filter(team=team, match=game).values_list('player_id', flat=True)
+
+        assert set(player_ids_in_lineups) == set([p.id for p in players])
+        assert len(player_ids_in_lineups) == len(set(player_ids_in_lineups)) 
+        assert response.status_code == 302
+        assert lineups_count + 11 == Lineup.objects.filter(match=game, team=team).count()
+        for l in Lineup.objects.filter(team=team, match=game):
+            assert l.is_starting is True
+            assert l.on_bench is False
+            assert l.team == team
+            assert l.match == game
+
+
+    @pytest.mark.parametrize("team_type", ["home", "away"])
+    def test_lineup_create_to_many_players(self, moderator_user, game, team_type):
+        """sprawdzam czy zapisze lineup przy zbyt dużej ilości graczy"""
+
+        client, _ = moderator_user
+        team = game.home_team if team_type == 'home' else game.away_team
+        players = [baker.make('football.Player', team = team) for _ in range(12)]
+        lineups_count = Lineup.objects.filter(match=game, team=team).count()
+        lineup_data = {'match':game.id, 'team': team.id, 'players':[player.id for player in players]}
+        
+        url = reverse('lineup_create', kwargs={'pk': game.pk, 'team_type':team_type})
+        response = client.post(url, data=lineup_data)
+      
+        assert response.status_code == 200
+        assert lineups_count == Lineup.objects.filter(match=game, team=team).count()
+
+    @pytest.mark.parametrize("team_type", ["home", "away"])
+    def test_lineup_create_to_less_players(self, moderator_user, game, team_type):
+        """sprawdzam czy zapisze lineup przy zbyt małej ilości graczy"""
+
+        client, _ = moderator_user
+        team = game.home_team if team_type == 'home' else game.away_team
+        players = [baker.make('football.Player', team = team) for _ in range(10)]
+        lineups_count = Lineup.objects.filter(match=game, team=team).count()
+        lineup_data = {'match':game.id, 'team': team.id, 'players':[player.id for player in players]}
+        
+        url = reverse('lineup_create', kwargs={'pk': game.pk, 'team_type':team_type})
+        response = client.post(url, data=lineup_data)
+      
+        assert response.status_code == 200
+        assert lineups_count == Lineup.objects.filter(match=game, team=team).count()
+
+    
+    @pytest.mark.parametrize("team_type", ["home", "away"])
+    def test_lineup_create_wrong_team_players(self, moderator_user, game, team_type):
+        """sprawdzam czy zapisze lineup przy wyborze graczy ze złej drużyny"""
+
+        client, _ = moderator_user
+        team = game.away_team if team_type == 'home' else game.home_team
+        players = [baker.make('football.Player', team = team) for _ in range(11)]
+        lineups_count = Lineup.objects.filter(match=game, team=team).count()
+        lineup_data = {'match':game.id, 'team': team.id, 'players':[player.id for player in players]}
+        
+        url = reverse('lineup_create', kwargs={'pk': game.pk, 'team_type':team_type})
+        response = client.post(url, data=lineup_data)
+      
+        assert response.status_code == 200
+        assert lineups_count == Lineup.objects.filter(match=game, team=team).count()
+          
+@pytest.mark.django_db
+class TestLapsListView:
+
+    def test_laps_list_view_without_authorization(self,client):
+        """ sprawdzam, czy przekierowuje użytkownika bez autoryzacji"""
+        url = reverse('laps_list')
+        response = client.get(url)
+        assert response.status_code == 302
+ 
+    def test_laps_list_view_with_authorization(self,login_user):
+        """ sprawdzam, kod odpowiedzi oraz czy laps_list jest w kontekście"""
+        url = reverse('laps_list')
+        response = login_user.get(url)
+        assert response.status_code == 200
+        assert "laps_list" in response.context
+
+    def test_laps_list_view_laps(self,login_user, game, team):
+        """ sprawdzam, czy zwraca odpowiednie kolejki"""
+        url = reverse('laps_list')
+
+        baker.make("football.Match",
+            lap= 1,
+            date= date(2025, 4, 5),
+            home_team= team[0],
+            away_team= team[1],
+            home_score= 3,
+            away_score= 0
+        )
+
+        baker.make("football.Match",
+            lap= 2,
+            date= date(2025, 4, 12),
+            home_team= team[0],
+            away_team= game.home_team,
+            home_score= 3,
+            away_score= 0
+        )
+
+        expected_laps = [{'lap': 1}, {'lap': 2}]
+
+        response = login_user.get(url)
+        assert response.status_code == 200
+        assert "laps_list" in response.context
+        assert list(response.context['laps_list']) == expected_laps
+
+@pytest.mark.django_db
+class TestLineupUpdateView:
+
+    @pytest.mark.parametrize("team_type", ["home_team", "away_team"])
+    def test_lineup_update_view_without_authorization(self,client, game, team_type):
+        """ sprawdzam, czy przekierowuje użytkownika bez autoryzacji"""
+        url = reverse('lineup', kwargs={'pk': game.pk, 'team_type':team_type})
+        response = client.get(url)
+        assert response.status_code == 302
+
+    @pytest.mark.parametrize("team_type", ["home_team", "away_team"])
+    def test_lineup_update_without_permission(self, login_user, game, team_type):
+        """ sprawdzam, czy odmawia dostępu zalogowanego użytkownika bez uprawnień"""
+        url = reverse('lineup', kwargs={'pk': game.pk, 'team_type':team_type})
+        response = login_user.get(url)
+        assert response.status_code == 403
+
+    # @pytest.mark.parametrize("team_type", ["home", "away"])
+    # def test_lineup_update_with_permission_and_checked_players(self, moderator_user, game,lineup, team_type):
+    #     """sprawdzam czy poprawnie renderuje, zwraca poprany kod oraz czy zaznaczacza zawodników wybranych wcześniej"""
+    #     client, _ = moderator_user
+    #     response = client.get(reverse('lineup', kwargs={'pk': game.pk, 'team_type': team_type}))
+    #     # form = response.context['form']
+    #     initial_players = list(response.context['selected_players'])
+    #     selected_ids = [player.id for player in lineup]
+    #     print("a ja:", response.context['selected_players'])
+    #     print("a ja:", response.context['players'])
+    #     print("initial:", initial_players)
+    #     print("selected:", selected_ids)
+
+    #     assert response.status_code == 200
+    #     assert set(initial_players) == set(selected_ids)

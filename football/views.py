@@ -268,7 +268,7 @@ class LineupUpdateView(PermissionRequiredMixin, UpdateView):
         team_type = self.kwargs['team_type']
         team = match.home_team if team_type == 'home' else match.away_team
         # kwargs['team'] = team
-        selected_players = Lineup.objects.filter(match=match, team=team).values_list('player', flat=True)
+        selected_players = Lineup.objects.filter(match=match, team=team, is_starting=True).values_list('player', flat=True)
         # Przekaż zaznaczonych zawodników do formularza
         kwargs['initial'] = {'players': selected_players}
 
@@ -296,7 +296,7 @@ class LineupUpdateView(PermissionRequiredMixin, UpdateView):
         context['midfielders'] = midfielders
         context['strikers'] = strikers
 
-        selected_players = Lineup.objects.filter(match=match, team=team).values_list('player_id', flat=True)
+        selected_players = Lineup.objects.filter(match=match, team=team, is_starting=True).values_list('player_id', flat=True)
         
         context['selected_players'] = selected_players
 
